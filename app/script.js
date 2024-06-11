@@ -38,34 +38,120 @@ function getAddress() {
   console.log(fromPin);
   console.log(toPin);
   if (fromPin != "" && toPin != "") {
-    //This api call for From Pincode
-    axios.get("/getaddress/"+fromPin)
-    .then((response)=>{
-      console.log(response);
-              //getting the field by using id
-              dropdown1 = document.getElementById("dropdown1");
+    // //This api call for From Pincode
+    // axios.get("/getaddress/"+fromPin)
+    // .then((response)=>{
+    //   console.log(response);
+    //           //getting the field by using id
+    //           dropdown1 = document.getElementById("dropdown1");
 
-            //Inserting the dropdown options to that field
-            dropdown1.innerHTML = response.data;
-    })
-    .catch((err)=>{
-      console.error("Error fetching address from backend"+err);
-    })
+    //         //Inserting the dropdown options to that field
+    //         dropdown1.innerHTML = response.data;
+    // })
+    // .catch((err)=>{
+    //   console.error("Error fetching address from backend"+err);
+    // })
     
-    //This api call for To Pincode
-    axios.get("/getaddress/"+toPin)
-    .then((response)=>{
-      console.log(response);
-              //getting the field by using id
-              dropdown2 = document.getElementById("dropdown2");
+    // //This api call for To Pincode
+    // axios.get("/getaddress/"+toPin)
+    // .then((response)=>{
+    //   console.log(response);
+    //           //getting the field by using id
+    //           dropdown2 = document.getElementById("dropdown2");
 
-            //Inserting the dropdown options to that field
-            dropdown2.innerHTML = response.data;
-    })
-    .catch((err)=>{
-      console.error("Error fetching address from backend"+err);
-    })
+    //         //Inserting the dropdown options to that field
+    //         dropdown2.innerHTML = response.data;
+    // })
+    // .catch((err)=>{
+    //   console.error("Error fetching address from backend"+err);
+    // })
+    //Call api for get the from pin addresses
+    axios.get("https://api.postalpincode.in/pincode/" + fromPin)
+      .then((response) => {
+        console.log("response : " + JSON.stringify(response.data));
 
+        //Getting the addresses from response
+        let PostOffice = response.data[0].PostOffice;
+
+        console.log("fromAddressList : " + PostOffice);
+
+        //getting the field by using id
+        dropdown1 = document.getElementById("dropdown1");
+
+        //Generating the dynamic dropdown value
+        let optionsAsString =
+          "<option value=''>Select Your Address</option>";
+        for (var i = 0; i < PostOffice.length; i++) {
+          optionsAsString +=
+            "<option value='" +
+            PostOffice[i].Name +
+            "," +
+            PostOffice[i].District +
+            "," +
+            PostOffice[i].State +
+            "," +
+            PostOffice[i].Country +
+            "'>" +
+            PostOffice[i].Name +
+            "," +
+            PostOffice[i].District +
+            "," +
+            PostOffice[i].State +
+            "," +
+            PostOffice[i].Country +
+            "</option>";
+        }
+
+        //Inserting the dropdown options to that field
+        dropdown1.innerHTML = optionsAsString;
+      })
+      .catch((error) => {
+        console.error("Error fetching data:", error);
+      });
+
+    //Call api for get the to pin addresses
+    axios.get("https://api.postalpincode.in/pincode/" + toPin)
+      .then((response) => {
+        console.log("response : " + JSON.stringify(response.data));
+
+        //Getting the addresses from response
+        let PostOffice = response.data[0].PostOffice;
+
+        console.log("fromAddressList : " + PostOffice);
+
+        //getting the field by using id
+        dropdown2 = document.getElementById("dropdown2");
+
+        //Generating the dynamic dropdown value
+        let optionsAsString =
+          "<option value=''>Select Your Address</option>";
+        for (var i = 0; i < PostOffice.length; i++) {
+          optionsAsString +=
+            "<option value='" +
+            PostOffice[i].Name +
+            "," +
+            PostOffice[i].District +
+            "," +
+            PostOffice[i].State +
+            "," +
+            PostOffice[i].Country +
+            "'>" +
+            PostOffice[i].Name +
+            "," +
+            PostOffice[i].District +
+            "," +
+            PostOffice[i].State +
+            "," +
+            PostOffice[i].Country +
+            "</option>";
+        }
+
+        //Inserting the dropdown options to that field
+        dropdown2.innerHTML = optionsAsString;
+      })
+      .catch((error) => {
+        console.error("Error fetching data:", error);
+      });
   } else {
     alert("Please Fill the pincode fields");
   }
@@ -89,11 +175,15 @@ async function getDirection() {
   let fromAddress = document.getElementById("dropdown1").value;
   let toAddress = document.getElementById("dropdown2").value;
  console.log("fromaddress : "+fromAddress);
+
+  //Getting coordinates using the address value
+  let fromCordinate =await getLatAndLong(fromAddress);
+  let toCordinate =await getLatAndLong(toAddress);
   //creating payload for request body for api
-  const payload = {
-    fAddress:fromAddress,
-    tAddress:toAddress
-  }
+  // const payload = {
+  //   fAddress:fromAddress,
+  //   tAddress:toAddress
+  // }
 
   // //create request for google map
   // var request = {
@@ -124,28 +214,97 @@ async function getDirection() {
   // });
 
   if(fromAddress != "" && toAddress != ""){
+  
+    //to get distance from the direction api
+    let distance;
+  
+    //api url to get the direction
+    const orsUrl = "https://api.openrouteservice.org/v2/directions/driving-car";
+  
+    //parameters for that api
+    let api_key = "5b3ce3597851110001cf6248d0aee2fd3c354bf1988fc79f8fe01582";
+    let start = fromCordinate.longtitude + "," + fromCordinate.latitute;
+    let end = toCordinate.longtitude + "," + toCordinate.latitute;
+      console.log("test 3");
+    //api call
+    await axios
+      .get(orsUrl + "?api_key=" + api_key + "&start=" + start + "&end=" + end)
+      .then(async (response) => {
+        console.log("Direction response : " + JSON.stringify(response.data));
+        distance = await response.data.features[0].properties.segments[0].distance;
+        console.log("Distance : " + distance);
+        const route = await response.data.features[0].geometry.coordinates;
+        console.log("Route VAlue : " + route);
+        const coordinates = await route.map((coord) => [coord[1], coord[0]]);
+        console.log("Cordinates : " + coordinates);
+        const polyline = L.polyline(coordinates, { color: "blue" }).addTo(map);
+        map.fitBounds(polyline.getBounds());
 
-    console.log("payload : "+JSON.stringify(payload));
-    //api call for get the direction
-    axios.post("/getdirection",payload)
-    .then((response)=>{
+      })
+      .catch((err) => console.error("Error fetching directions:",err));
 
-      console.log("Direction Response : "+JSON.stringify(response.data))
+       //updating to the distance field
+       document.getElementById("distance").value = distance / 1000;
+    // console.log("payload : "+JSON.stringify(payload));
+    // //api call for get the direction
+    // axios.post("/getdirection",payload)
+    // .then((response)=>{
 
-      let coordinates = response.data.coords;
-      let distance = response.data.distance;
-      //inserting the coordinates to the map
-      const polyline = L.polyline(coordinates, { color: "blue" }).addTo(map);
-      map.fitBounds(polyline.getBounds());
+    //   console.log("Direction Response : "+JSON.stringify(response.data))
 
-        //updating to the distance field
-        document.getElementById("distance").value = distance / 1000;
-    })
-    .catch((err)=>{
-      console.error("Error getting direction details from backend : "+err);
-    })
+    //   let coordinates = response.data.coords;
+    //   let distance = response.data.distance;
+    //   //inserting the coordinates to the map
+      // const polyline = L.polyline(coordinates, { color: "blue" }).addTo(map);
+      // map.fitBounds(polyline.getBounds());
+
+       
+    // })
+    // .catch((err)=>{
+    //   console.error("Error getting direction details from backend : "+err);
+    // })
 
   }else{
     alert("Please select address");
   }
+}
+
+//Function to find latitude and longtitude using address
+async function getLatAndLong(address) {
+  //api key it has limit
+  api_key = "de7a6d09a6c848378cb8218172cc9ae4";
+
+  let latituteVal;
+  let longtitudeVal;
+  if(address != ""){
+  //api call for get latitude and langitude
+  await axios
+    .get(
+      "https://api.opencagedata.com/geocode/v1/json?q=" +
+        address +
+        "&key=" +
+        api_key
+    )
+    .then((response) => {
+      console.log(
+        "Response Location : " +
+          JSON.stringify(response.data.results[0].geometry)
+      );
+      latituteVal = response.data.results[0].geometry.lat;
+      longtitudeVal = response.data.results[0].geometry.lng;
+    })
+    .catch((error) => {
+      console.error("Error getting latitude and longtitude data:");
+    });
+  //creating object of lat and long
+  var data = {
+    latitute: latituteVal,
+    longtitude: longtitudeVal,
+  };
+  return data;
+}else{
+  alert("Address is empty");
+  return "";
+}
+  
 }
